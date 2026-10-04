@@ -16,6 +16,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
 @Mixin(LoadingOverlay.class)
@@ -33,7 +34,8 @@ public abstract class ForgeLoadingOverlayMixin {
     @Shadow @Final private ReloadInstance reload;
     @Shadow @Final private Consumer<Optional<Throwable>> onFinish;
 
-    @Unique private int assetsTotales = -1;
+    @Unique private volatile int assetsTotales = -1;
+    @Unique private volatile boolean contandoAssets = false;
 
     @Inject(method = "render", at = @At("HEAD"), cancellable = true)
     private void reemplazarPantallaDeCarga(GuiGraphics graficos, int mouseX, int mouseY, float partialTick, CallbackInfo ci) {
@@ -64,18 +66,26 @@ public abstract class ForgeLoadingOverlayMixin {
 
         float progreso = Math.max(0.0F, Math.min(this.reload.getActualProgress(), 1.0F));
 
-        if (this.assetsTotales < 0) {
-            try {
-                this.assetsTotales = this.minecraft.getResourceManager()
-                        .listResources("", ubicacion -> true)
-                        .size();
-            } catch (RuntimeException error) {
-                this.assetsTotales = 0;
-            }
+        if (this.assetsTotales < 0 && !this.contandoAssets) {
+            this.contandoAssets = true;
+            CompletableFuture.supplyAsync(() -> {
+                try {
+                    return this.minecraft.getResourceManager()
+                            .listResources("", ubicacion -> true)
+                            .size();
+                } catch (RuntimeException error) {
+                    return -1;
+                }
+            }).thenAccept(total -> {
+                this.assetsTotales = total;
+                this.contandoAssets = false;
+            });
         }
 
         int total = Math.max(0, this.assetsTotales);
-        int cargados = this.reload.isDone() ? total : Math.min(total, Math.round(total * progreso));
+        int cargados = this.assetsTotales < 0
+                ? 0
+                : (this.reload.isDone() ? total : Math.min(total, Math.round(total * progreso)));
         int porcentaje = Math.round(progreso * 100.0F);
 
         int x = MARGEN_PANEL;
@@ -83,7 +93,10 @@ public abstract class ForgeLoadingOverlayMixin {
 
         graficos.fill(x, y, x + ANCHO_PANEL, y + ALTO_PANEL, COLOR_PANEL);
         graficos.drawString(this.minecraft.font, Component.literal("Cargando Assets"), x + 8, y + 7, COLOR_TEXTO, false);
-        graficos.drawString(this.minecraft.font, Component.literal(cargados + "/" + total + " Assets cargados"), x + 8, y + 21, COLOR_TEXTO, false);
+        String textoActivos = this.assetsTotales < 0
+                ? "Contando Assets..."
+                : cargados + "/" + total + " Assets cargados";
+        graficos.drawString(this.minecraft.font, Component.literal(textoActivos), x + 8, y + 21, COLOR_TEXTO, false);
 
         int barraX = x + 8;
         int barraY = y + 38;
