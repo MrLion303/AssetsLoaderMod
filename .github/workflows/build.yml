@@ -7,103 +7,64 @@ on:
   workflow_dispatch:
 
 jobs:
-  empaquetar:
+  compilar:
+    name: ${{ matrix.loader }} - Minecraft 1.20.1
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        loader: [forge, fabric, neoforge]
-
-    runs-on: ubuntu-latest
-    name: ${{ matrix.loader }}
+        include:
+          - loader: fabric
+            gradle: 9.6.0
+          - loader: forge
+            gradle: 8.8
 
     steps:
-      - name: Checkout
+      - name: Descargar código
         uses: actions/checkout@v4
 
-      - name: Preparar versiones
+      - name: Preparar Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Preparar Gradle
         shell: bash
         run: |
-          case "${{ matrix.loader }}" in
-            fabric)
-              cat > versiones.txt <<'EOF'
-          1.20|21|9.6.0||
-          1.20.1|21|9.6.0||
-          1.20.2|21|9.6.0||
-          1.20.3|21|9.6.0||
-          1.20.4|21|9.6.0||
-          1.20.5|21|9.6.0||
-          1.20.6|21|9.6.0||
-          26.3|25|9.6.0||
-          EOF
-              ;;
-            forge)
-              cat > versiones.txt <<'EOF'
-          1.20|21|8.8|46.0.14|
-          1.20.1|21|8.8|47.4.26|
-          1.20.2|21|8.8|48.1.0|
-          1.20.3|21|8.8|49.0.2|
-          1.20.4|21|8.8|49.2.9|
-          1.20.6|21|8.8|50.2.10|
-          EOF
-              ;;
-            neoforge)
-              cat > versiones.txt <<'EOF'
-          1.20.4|21|8.8||20.4.238
-          1.20.6|21|8.14||20.6.115
-          26.3|25|9.6.0||26.3.0.42-beta
-          EOF
-              ;;
-          esac
+          curl -fsSL "https://services.gradle.org/distributions/gradle-${{ matrix.gradle }}-bin.zip" -o gradle.zip
+          unzip -q gradle.zip -d gradle-dist
+          echo "$GITHUB_WORKSPACE/gradle-dist/gradle-${{ matrix.gradle }}/bin" >> "$GITHUB_PATH"
 
-      - name: Compilar versiones
+      - name: Compilar mod
         shell: bash
         run: |
-          while IFS='|' read -r mc java gradle forge neoforge; do
-            [ -z "$mc" ] && continue
+          args=("build" "--no-daemon" "-Ploader=${{ matrix.loader }}" "-Pminecraft_version=1.20.1")
+          if [ "${{ matrix.loader }}" = "forge" ]; then
+            args+=("-Pforge_version=47.4.26")
+          fi
+          gradle "${args[@]}"
 
-            echo "Compilando ${{ matrix.loader }} Minecraft $mc"
-
-            if [ ! -d "jdk-$java" ]; then
-              curl -fsSL "https://api.adoptium.net/v3/binary/latest/$java/ga/linux/x64/jdk/hotspot/normal/eclipse" -o "jdk-$java.tar.gz"
-              mkdir -p "jdk-$java"
-              tar -xzf "jdk-$java.tar.gz" --strip-components=1 -C "jdk-$java"
-            fi
-            export JAVA_HOME="$GITHUB_WORKSPACE/jdk-$java"
-            export PATH="$JAVA_HOME/bin:$PATH"
-
-            if [ ! -d "gradle-$gradle" ]; then
-              curl -fsSL "https://services.gradle.org/distributions/gradle-$gradle-bin.zip" -o "gradle-$gradle.zip"
-              unzip -q "gradle-$gradle.zip" -d "gradle-dist"
-              mv "gradle-dist/gradle-$gradle" "gradle-$gradle"
-            fi
-
-            args=("build" "--no-daemon" "-Ploader=${{ matrix.loader }}" "-Pminecraft_version=$mc")
-            if [ -n "$forge" ]; then args+=("-Pforge_version=$forge"); fi
-            if [ -n "$neoforge" ]; then args+=("-Pneoforge_version=$neoforge"); fi
-
-            "./gradle-$gradle/bin/gradle" "${args[@]}"
-
-            mkdir -p "distribucion/AssetsLoaderMod-${{ matrix.loader }}"
-            jar=$(find build/libs -maxdepth 1 -type f -name '*.jar' ! -name '*-sources.jar' | head -n 1)
-
-            if [ -z "$jar" ]; then
-              echo "No se encontró el JAR de Minecraft $mc"
-              exit 1
-            fi
-
-            cp "$jar" "distribucion/AssetsLoaderMod-${{ matrix.loader }}/AssetsLoaderMod-$mc-${{ matrix.loader }}.jar"
-            rm -rf build/libs/*
-          done < versiones.txt
+      - name: Preparar paquete
+        shell: bash
+        run: |
+          mkdir -p "paquete/AssetsLoaderMod-${{ matrix.loader }}-1.20.1"
+          jar=$(find build/libs -maxdepth 1 -type f -name '*.jar' ! -name '*-sources.jar' | head -n 1)
+          if [ -z "$jar" ]; then
+            echo "No se encontró el JAR compilado."
+            exit 1
+          fi
+          cp "$jar" "paquete/AssetsLoaderMod-${{ matrix.loader }}-1.20.1/"
 
       - name: Crear ZIP
         shell: bash
         run: |
-          cd distribucion
-          zip -r "../AssetsLoaderMod-${{ matrix.loader }}.zip" "AssetsLoaderMod-${{ matrix.loader }}"
+          cd paquete
+          zip -r "../AssetsLoaderMod-${{ matrix.loader }}-1.20.1.zip" "AssetsLoaderMod-${{ matrix.loader }}-1.20.1"
 
-      - name: Subir ZIP
+      - name: Publicar paquete
         uses: actions/upload-artifact@v4
         with:
-          name: AssetsLoaderMod-${{ matrix.loader }}
-          path: AssetsLoaderMod-${{ matrix.loader }}.zip
+          name: AssetsLoaderMod-${{ matrix.loader }}-1.20.1
+          path: AssetsLoaderMod-${{ matrix.loader }}-1.20.1.zip
           if-no-files-found: error
