@@ -7,99 +7,97 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
+  empaquetar:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - { loader: fabric, mc: '1.20', java: '21', gradle: '9.6.0' }
-          - { loader: fabric, mc: '1.20.1', java: '21', gradle: '9.6.0' }
-          - { loader: fabric, mc: '1.20.2', java: '21', gradle: '9.6.0' }
-          - { loader: fabric, mc: '1.20.3', java: '21', gradle: '9.6.0' }
-          - { loader: fabric, mc: '1.20.4', java: '21', gradle: '9.6.0' }
-          - { loader: fabric, mc: '1.20.5', java: '21', gradle: '9.6.0' }
-          - { loader: fabric, mc: '1.20.6', java: '21', gradle: '9.6.0' }
-          - { loader: fabric, mc: '26.3', java: '25', gradle: '9.6.0' }
-
-          - { loader: forge, mc: '1.20', java: '21', forge: '46.0.14', gradle: '8.8' }
-          - { loader: forge, mc: '1.20.1', java: '21', forge: '47.4.26', gradle: '8.8' }
-          - { loader: forge, mc: '1.20.2', java: '21', forge: '48.1.0', gradle: '8.8' }
-          - { loader: forge, mc: '1.20.3', java: '21', forge: '49.0.2', gradle: '8.8' }
-          - { loader: forge, mc: '1.20.4', java: '21', forge: '49.2.9', gradle: '8.8' }
-          - { loader: forge, mc: '1.20.6', java: '21', forge: '50.2.10', gradle: '8.8' }
-
-          - { loader: neoforge, mc: '1.20.4', java: '21', neoforge: '20.4.238', gradle: '8.8' }
-          - { loader: neoforge, mc: '1.20.6', java: '21', neoforge: '20.6.115', gradle: '8.14' }
-          - { loader: neoforge, mc: '26.3', java: '25', neoforge: '26.3.0.42-beta', gradle: '9.6.0' }
+        loader: [forge, fabric, neoforge]
 
     runs-on: ubuntu-latest
-    name: ${{ matrix.loader }} ${{ matrix.mc }}
+    name: ${{ matrix.loader }}
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Java
-        uses: actions/setup-java@v5
-        with:
-          distribution: temurin
-          java-version: ${{ matrix.java }}
-
-      - name: Gradle
-        uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: ${{ matrix.gradle }}
-
-      - name: Compilar
+      - name: Preparar versiones
         shell: bash
         run: |
-          args=("build" "--no-daemon" "-Ploader=${{ matrix.loader }}" "-Pminecraft_version=${{ matrix.mc }}")
-          if [ -n "${{ matrix.forge }}" ]; then args+=("-Pforge_version=${{ matrix.forge }}"); fi
-          if [ -n "${{ matrix.neoforge }}" ]; then args+=("-Pneoforge_version=${{ matrix.neoforge }}"); fi
-          if [ -n "${{ matrix.fabric_loader }}" ]; then args+=("-Pfabric_loader_version=${{ matrix.fabric_loader }}"); fi
-          gradle "${args[@]}"
+          case "${{ matrix.loader }}" in
+            fabric)
+              cat > versiones.txt <<'EOF'
+          1.20|21|9.6.0||
+          1.20.1|21|9.6.0||
+          1.20.2|21|9.6.0||
+          1.20.3|21|9.6.0||
+          1.20.4|21|9.6.0||
+          1.20.5|21|9.6.0||
+          1.20.6|21|9.6.0||
+          26.3|25|9.6.0||
+          EOF
+              ;;
+            forge)
+              cat > versiones.txt <<'EOF'
+          1.20|21|8.8|46.0.14|
+          1.20.1|21|8.8|47.4.26|
+          1.20.2|21|8.8|48.1.0|
+          1.20.3|21|8.8|49.0.2|
+          1.20.4|21|8.8|49.2.9|
+          1.20.6|21|8.8|50.2.10|
+          EOF
+              ;;
+            neoforge)
+              cat > versiones.txt <<'EOF'
+          1.20.4|21|8.8||20.4.238
+          1.20.6|21|8.14||20.6.115
+          26.3|25|9.6.0||26.3.0.42-beta
+          EOF
+              ;;
+          esac
 
-      - name: Subir JAR individual
-        uses: actions/upload-artifact@v4
-        with:
-          name: AssetsLoaderMod-${{ matrix.loader }}-${{ matrix.mc }}
-          path: build/libs/*.jar
-          if-no-files-found: error
-
-      - name: Preparar JAR para paquete
+      - name: Compilar versiones
         shell: bash
         run: |
-          mkdir -p "paquetes/${{ matrix.loader }}/${{ matrix.mc }}"
-          cp build/libs/*.jar "paquetes/${{ matrix.loader }}/${{ matrix.mc }}/AssetsLoaderMod-${{ matrix.mc }}-${{ matrix.loader }}.jar"
+          while IFS='|' read -r mc java gradle forge neoforge; do
+            [ -z "$mc" ] && continue
 
-      - name: Subir JAR preparado
-        uses: actions/upload-artifact@v4
-        with:
-          name: paquete-${{ matrix.loader }}-${{ matrix.mc }}
-          path: paquetes/${{ matrix.loader }}/${{ matrix.mc }}/
+            echo "Compilando ${{ matrix.loader }} Minecraft $mc"
 
-  empaquetar:
-    needs: build
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        loader: [forge, fabric, neoforge]
+            if [ ! -d "jdk-$java" ]; then
+              curl -fsSL "https://api.adoptium.net/v3/binary/latest/$java/ga/linux/x64/jdk/hotspot/normal/eclipse" -o "jdk-$java.tar.gz"
+              mkdir -p "jdk-$java"
+              tar -xzf "jdk-$java.tar.gz" --strip-components=1 -C "jdk-$java"
+            fi
+            export JAVA_HOME="$GITHUB_WORKSPACE/jdk-$java"
+            export PATH="$JAVA_HOME/bin:$PATH"
 
-    steps:
-      - name: Descargar JAR de versiones
-        uses: actions/download-artifact@v4
-        with:
-          pattern: paquete-${{ matrix.loader }}-*
-          path: paquetes
-          merge-multiple: true
+            if [ ! -d "gradle-$gradle" ]; then
+              curl -fsSL "https://services.gradle.org/distributions/gradle-$gradle-bin.zip" -o "gradle-$gradle.zip"
+              unzip -q "gradle-$gradle.zip" -d "gradle-dist"
+              mv "gradle-dist/gradle-$gradle" "gradle-$gradle"
+            fi
+
+            args=("build" "--no-daemon" "-Ploader=${{ matrix.loader }}" "-Pminecraft_version=$mc")
+            if [ -n "$forge" ]; then args+=("-Pforge_version=$forge"); fi
+            if [ -n "$neoforge" ]; then args+=("-Pneoforge_version=$neoforge"); fi
+
+            "./gradle-$gradle/bin/gradle" "${args[@]}"
+
+            mkdir -p "distribucion/AssetsLoaderMod-${{ matrix.loader }}"
+            jar=$(find build/libs -maxdepth 1 -type f -name '*.jar' ! -name '*-sources.jar' | head -n 1)
+
+            if [ -z "$jar" ]; then
+              echo "No se encontró el JAR de Minecraft $mc"
+              exit 1
+            fi
+
+            cp "$jar" "distribucion/AssetsLoaderMod-${{ matrix.loader }}/AssetsLoaderMod-$mc-${{ matrix.loader }}.jar"
+            rm -rf build/libs/*
+          done < versiones.txt
 
       - name: Crear ZIP
         shell: bash
         run: |
-          mkdir -p "distribucion/AssetsLoaderMod-${{ matrix.loader }}"
-          while IFS= read -r -d '' archivo; do
-            cp "$archivo" "distribucion/AssetsLoaderMod-${{ matrix.loader }}/"
-          done < <(find "paquetes" -type f -name '*.jar' -print0)
           cd distribucion
           zip -r "../AssetsLoaderMod-${{ matrix.loader }}.zip" "AssetsLoaderMod-${{ matrix.loader }}"
 
