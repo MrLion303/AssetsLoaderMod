@@ -26,11 +26,10 @@ jobs:
           - { loader: forge, mc: '1.20.2', java: '21', forge: '48.1.0', gradle: '8.8' }
           - { loader: forge, mc: '1.20.3', java: '21', forge: '49.0.2', gradle: '8.8' }
           - { loader: forge, mc: '1.20.4', java: '21', forge: '49.2.9', gradle: '8.8' }
-          - { loader: forge, mc: '1.20.5', java: '21', forge: '50.0.32', gradle: '8.8' }
           - { loader: forge, mc: '1.20.6', java: '21', forge: '50.2.10', gradle: '8.8' }
 
           - { loader: neoforge, mc: '1.20.4', java: '21', neoforge: '20.4.238', gradle: '8.8' }
-          - { loader: neoforge, mc: '1.20.6', java: '21', neoforge: '20.6.62-beta', gradle: '8.8' }
+          - { loader: neoforge, mc: '1.20.6', java: '21', neoforge: '20.6.115', gradle: '8.8' }
           - { loader: neoforge, mc: '26.3', java: '25', neoforge: '26.3.0.42-beta', gradle: '9.6.0' }
 
     runs-on: ubuntu-latest
