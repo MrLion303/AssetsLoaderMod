@@ -10,8 +10,12 @@ buildscript {
     dependencies {
         classpath 'net.minecraftforge.gradle:ForgeGradle:6.+'
         classpath 'org.spongepowered:mixingradle:0.7-SNAPSHOT'
-        classpath 'net.fabricmc:fabric-loom:1.17.21'
-        classpath 'net.neoforged.moddev:net.neoforged.moddev.gradle.plugin:2.0.147'
+        if (project.hasProperty('loader') && project.property('loader').toString().equalsIgnoreCase('fabric')) {
+            classpath 'net.fabricmc:fabric-loom:1.17.21'
+        }
+        if (project.hasProperty('loader') && project.property('loader').toString().equalsIgnoreCase('neoforge')) {
+            classpath 'net.neoforged.moddev:net.neoforged.moddev.gradle.plugin:2.0.147'
+        }
     }
 }
 
@@ -69,7 +73,7 @@ sourceSets {
 }
 
 if (isFabric) {
-    apply plugin: 'fabric-loom'
+    apply plugin: is26 ? 'net.fabricmc.fabric-loom' : 'fabric-loom'
 
     loom {
         runs {
@@ -80,8 +84,12 @@ if (isFabric) {
 
     dependencies {
         minecraft "com.mojang:minecraft:${minecraftVersion}"
-        mappings loom.officialMojangMappings()
-        modImplementation "net.fabricmc:fabric-loader:${is26 ? '0.19.5' : '0.17.2'}"
+        if (!is26) {
+            mappings loom.officialMojangMappings()
+            modImplementation "net.fabricmc:fabric-loader:0.17.2"
+        } else {
+            implementation "net.fabricmc:fabric-loader:0.19.5"
+        }
     }
 } else if (isNeo) {
     apply plugin: 'net.neoforged.moddev'
