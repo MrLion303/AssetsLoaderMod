@@ -36,7 +36,9 @@ if (!supported.containsKey(loader) || !supported[loader].contains(minecraftVersi
 
 group = mod_group_id
 version = "${mod_version}+mc${minecraftVersion}-${loader}"
-base { archivesName = mod_id }
+tasks.withType(Jar).configureEach {
+    archiveBaseName.set(mod_id)
+}
 
 java {
     toolchain.languageVersion = JavaLanguageVersion.of(javaVersion)
@@ -89,9 +91,10 @@ if (isFabric) {
     }
 } else if (isForge) {
     if (minecraftVersion == '1.20.1') {
-        apply plugin: 'net.neoforged.moddev.legacyforge'
-        legacyForge {
-            version = project.findProperty('forge_version').toString()
+        apply plugin: 'net.minecraftforge.gradle'
+        minecraft {
+            mappings channel: 'official', version: minecraftVersion
+            copyIdeResources = true
             runs {
                 client { client() }
                 server { server() }
