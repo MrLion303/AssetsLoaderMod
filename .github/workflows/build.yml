@@ -29,7 +29,7 @@ jobs:
           - { loader: forge, mc: '1.20.6', java: '21', forge: '50.2.10', gradle: '8.8' }
 
           - { loader: neoforge, mc: '1.20.4', java: '21', neoforge: '20.4.238', gradle: '8.8' }
-          - { loader: neoforge, mc: '1.20.6', java: '21', neoforge: '20.6.62', gradle: '8.8' }
+          - { loader: neoforge, mc: '1.20.6', java: '21', neoforge: '20.6.62', gradle: '8.14' }
           - { loader: neoforge, mc: '26.3', java: '25', neoforge: '26.3.0.42-beta', gradle: '9.6.0' }
 
     runs-on: ubuntu-latest
