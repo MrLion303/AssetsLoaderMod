@@ -1,6 +1,5 @@
 package mr.lion303.assetsloadermod.mixin;
 
-import mr.lion303.assetsloadermod.ResourceReloadState;
 import net.minecraft.Util;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
@@ -73,9 +72,6 @@ public abstract class ForgeLoadingOverlayMixin {
             }
         }
 
-        if (!ResourceReloadState.isGameReady()) {
-            return;
-        }
 
         float reloadProgress = Math.max(0.0F, Math.min(this.reload.getActualProgress(), 1.0F));
         if (this.assetsLoaderMod$totalAssets < 0) {
