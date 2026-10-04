@@ -15,7 +15,7 @@ buildscript {
         }
         if (project.hasProperty('loader') && project.property('loader').toString().equalsIgnoreCase('neoforge')) {
             if (project.hasProperty('minecraft_version') && project.property('minecraft_version').toString() == '1.20.6') {
-                classpath 'net.neoforged.gradle:net.neoforged.gradle.userdev:7.1.39'
+                classpath 'net.neoforged.gradle.userdev:net.neoforged.gradle.userdev.gradle.plugin:7.1.39'
             } else {
                 classpath 'net.neoforged.moddev:net.neoforged.moddev.gradle.plugin:2.0.147'
             }
