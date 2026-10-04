@@ -4,5 +4,5 @@
   "package": "mr.lion303.assetsloadermod.mixin",
   "compatibilityLevel": "JAVA_${java_version}",
   "refmap": "assetsloadermod.refmap.json",
-  "client": ["LoadingOverlayMixin"]
+  "client": ["MinecraftMixin", "LoadingOverlayMixin"]
 }
