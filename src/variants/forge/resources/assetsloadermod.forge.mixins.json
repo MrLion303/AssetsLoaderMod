@@ -1,0 +1,8 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "mr.lion303.assetsloadermod.mixin",
+  "compatibilityLevel": "JAVA_17",
+  "refmap": "assetsloadermod.refmap.json",
+  "client": ["ForgeLoadingOverlayMixin"]
+}
