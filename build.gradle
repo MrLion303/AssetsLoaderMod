@@ -13,13 +13,6 @@ buildscript {
         if (project.hasProperty('loader') && project.property('loader').toString().equalsIgnoreCase('fabric')) {
             classpath 'net.fabricmc:fabric-loom:1.17.21'
         }
-        if (project.hasProperty('loader') && project.property('loader').toString().equalsIgnoreCase('neoforge')) {
-            if (project.hasProperty('minecraft_version') && project.property('minecraft_version').toString() == '1.20.6') {
-                classpath 'net.neoforged.gradle.userdev:net.neoforged.gradle.userdev.gradle.plugin:7.1.39'
-            } else {
-                classpath 'net.neoforged.moddev:net.neoforged.moddev.gradle.plugin:2.0.147'
-            }
-        }
     }
 }
 
@@ -30,19 +23,18 @@ plugins {
 
 def loader = (findProperty('loader') ?: 'forge').toString().toLowerCase()
 def minecraftVersion = (findProperty('minecraft_version') ?: '1.20.1').toString()
-def is26 = minecraftVersion == '26.3'
+def is26 = false
 def isNeo = loader == 'neoforge'
 def isFabric = loader == 'fabric'
 def isForge = loader == 'forge'
-def javaVersion = is26 ? 25 : ((minecraftVersion == '1.20.5' || minecraftVersion == '1.20.6') ? 21 : 17)
+def javaVersion = 17
 
 def supported = [
-    fabric: ['1.20','1.20.1','1.20.2','1.20.3','1.20.4','1.20.5','1.20.6','26.3'],
-    forge: ['1.20','1.20.1','1.20.2','1.20.3','1.20.4','1.20.6'],
-    neoforge: ['1.20.4','1.20.6','26.3']
+    fabric: ['1.20.1'],
+    forge: ['1.20.1']
 ]
 if (!supported.containsKey(loader) || !supported[loader].contains(minecraftVersion)) {
-    throw new GradleException("Combinación no soportada: ${loader} + Minecraft ${minecraftVersion}")
+    throw new GradleException("Combinación no soportada: ${loader} + Minecraft ${minecraftVersion}. Solo se compila Fabric y Forge para Minecraft 1.20.1.")
 }
 
 group = mod_group_id
@@ -66,7 +58,7 @@ sourceSets {
         java.srcDirs = [
             'src/common/java',
             "src/variants/${loader}/java",
-            "src/variants/${is26 ? '26.3' : '1.20'}/java"
+            'src/variants/1.20/java'
         ]
         resources.srcDirs = [
             'src/common/resources',
@@ -76,7 +68,7 @@ sourceSets {
 }
 
 if (isFabric) {
-    apply plugin: is26 ? 'net.fabricmc.fabric-loom' : 'fabric-loom'
+    apply plugin: 'fabric-loom'
 
     loom {
         runs {
@@ -87,47 +79,8 @@ if (isFabric) {
 
     dependencies {
         minecraft "com.mojang:minecraft:${minecraftVersion}"
-        if (!is26) {
-            mappings loom.officialMojangMappings()
-            modImplementation "net.fabricmc:fabric-loader:0.17.2"
-        } else {
-            implementation "net.fabricmc:fabric-loader:0.19.5"
-        }
-    }
-} else if (isNeo) {
-    if (minecraftVersion == '1.20.6') {
-        apply plugin: 'net.neoforged.gradle.userdev'
-
-        dependencies {
-            implementation "net.neoforged:neoforge:${project.findProperty('neoforge_version')}"
-        }
-
-        runs {
-            configureEach {
-                modSource sourceSets.main
-            }
-            client {}
-            server {}
-        }
-    } else {
-        apply plugin: 'net.neoforged.moddev'
-
-        configurations.configureEach {
-            resolutionStrategy.force 'org.slf4j:slf4j-api:2.0.7'
-        }
-
-        neoForge {
-            version = project.findProperty('neoforge_version').toString()
-            runs {
-                client { client() }
-                server { server() }
-            }
-            mods {
-                assetsloadermod {
-                    sourceSet sourceSets.main
-                }
-            }
-        }
+        mappings loom.officialMojangMappings()
+        modImplementation "net.fabricmc:fabric-loader:0.17.2"
     }
 } else if (isForge) {
     apply plugin: 'net.minecraftforge.gradle'
@@ -156,10 +109,8 @@ if (isFabric) {
         manifest.attributes(['MixinConfigs': 'assetsloadermod.mixins.json'])
     }
 
-    if (minecraftVersion < '1.20.5') {
-        tasks.named('jar', Jar).configure {
-            finalizedBy 'reobfJar'
-        }
+    tasks.named('jar', Jar).configure {
+        finalizedBy 'reobfJar'
     }
 }
 
@@ -173,8 +124,7 @@ processResources {
         mod_description: mod_description,
         java_version: javaVersion,
         forge_version: project.findProperty('forge_version') ?: '',
-        neoforge_version: project.findProperty('neoforge_version') ?: '',
-        fabric_loader_version: is26 ? '0.19.5' : '0.17.2'
+        fabric_loader_version: '0.17.2'
     ]
 
     inputs.properties(props)
@@ -182,19 +132,12 @@ processResources {
     filesMatching([
         'assetsloadermod.mixins.json',
         'fabric.mod.json',
-        'META-INF/mods.toml',
-        'META-INF/neoforge.mods.toml'
+        'META-INF/mods.toml'
     ]) {
         expand props
     }
 
-    if (isNeo && minecraftVersion == '1.20.4') {
-        filesMatching('META-INF/neoforge.mods.toml') {
-            it.path = 'META-INF/mods.toml'
-        }
-    }
-
-    if (!isNeo) exclude 'META-INF/neoforge.mods.toml'
+    exclude 'META-INF/neoforge.mods.toml'
     if (!isFabric) exclude 'fabric.mod.json'
     if (!isForge) exclude 'META-INF/mods.toml'
 }
