@@ -6,9 +6,6 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.LoadingOverlay;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
-import net.minecraft.server.packs.PackResources;
-import net.minecraft.server.packs.PackType;
-import net.minecraft.server.packs.repository.Pack;
 import net.minecraft.server.packs.resources.ReloadInstance;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -19,12 +16,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
 import java.util.Optional;
-import java.util.Set;
-import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
 @Mixin(LoadingOverlay.class)
@@ -42,8 +34,6 @@ public abstract class ForgeLoadingOverlayMixin {
     @Shadow @Final private ReloadInstance reload;
     @Shadow @Final private Consumer<Optional<Throwable>> onFinish;
 
-    @Unique private volatile int assetsTotales = -1;
-    @Unique private volatile boolean contandoAssets = false;
 
     @Inject(method = "isPauseScreen", at = @At("HEAD"), cancellable = true)
     private void permitirContinuarJugando(CallbackInfoReturnable<Boolean> ci) {
@@ -79,44 +69,7 @@ public abstract class ForgeLoadingOverlayMixin {
 
         float progreso = Math.max(0.0F, Math.min(this.reload.getActualProgress(), 1.0F));
 
-        if (this.assetsTotales < 0 && !this.contandoAssets) {
-            this.contandoAssets = true;
 
-            List<Pack> paquetesSeleccionados = new ArrayList<>(
-                    this.minecraft.getResourcePackRepository().getSelectedPacks()
-            );
-
-            CompletableFuture.supplyAsync(() -> {
-                Set<String> recursos = new HashSet<>();
-
-                try {
-                    for (Pack paquete : paquetesSeleccionados) {
-                        try (PackResources recursosPaquete = paquete.open()) {
-                            for (String espacioNombres : recursosPaquete.getNamespaces(PackType.CLIENT_RESOURCES)) {
-                                recursosPaquete.listResources(
-                                        PackType.CLIENT_RESOURCES,
-                                        espacioNombres,
-                                        "",
-                                        (ubicacion, proveedor) -> recursos.add(ubicacion.toString())
-                                );
-                            }
-                        }
-                    }
-
-                    return recursos.size();
-                } catch (RuntimeException error) {
-                    return -1;
-                }
-            }).thenAccept(total -> {
-                this.assetsTotales = total;
-                this.contandoAssets = false;
-            });
-        }
-
-        int total = Math.max(0, this.assetsTotales);
-        int cargados = this.assetsTotales < 0
-                ? 0
-                : (this.reload.isDone() ? total : Math.min(total, Math.round(total * progreso)));
         int porcentaje = Math.round(progreso * 100.0F);
 
         int x = MARGEN_PANEL;
@@ -124,10 +77,6 @@ public abstract class ForgeLoadingOverlayMixin {
 
         graficos.fill(x, y, x + ANCHO_PANEL, y + ALTO_PANEL, COLOR_PANEL);
         graficos.drawString(this.minecraft.font, Component.literal("Cargando Assets"), x + 8, y + 7, COLOR_TEXTO, false);
-        String textoActivos = this.assetsTotales < 0
-                ? "Contando Assets..."
-                : cargados + "/" + total + " Assets cargados";
-        graficos.drawString(this.minecraft.font, Component.literal(textoActivos), x + 8, y + 21, COLOR_TEXTO, false);
 
         int barraX = x + 8;
         int barraY = y + 38;
