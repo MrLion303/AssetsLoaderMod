@@ -5,6 +5,7 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.LoadingOverlay;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.packs.resources.ReloadInstance;
+import mr.lion303.assetsloadermod.ResourceReloadState;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -29,8 +30,8 @@ public abstract class LoadingOverlayMixin {
     private void assetsLoaderMod$render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick, CallbackInfo ci) {
         Minecraft minecraft = Minecraft.getInstance();
 
-        // Mantener la pantalla original al iniciar el juego y al cargar un mundo.
-        if (minecraft.level == null) {
+        // Mantener la pantalla original durante la carga inicial del juego.
+        if (!ResourceReloadState.isGameReady()) {
             return;
         }
 
