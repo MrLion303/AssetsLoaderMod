@@ -25,9 +25,6 @@ public abstract class LevelLoadingScreenMixin {
     @Shadow @Final
     private StoringChunkProgressListener progressListener;
 
-    @Shadow @Final
-    protected Minecraft minecraft;
-
     @Inject(method = "render", at = @At("HEAD"), cancellable = true)
     private void assetsLoaderMod$render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick, CallbackInfo ci) {
         ci.cancel();
@@ -37,10 +34,10 @@ public abstract class LevelLoadingScreenMixin {
         int y = graphics.guiHeight() - PANEL_HEIGHT - PANEL_MARGIN;
 
         graphics.fill(x, y, x + PANEL_WIDTH, y + PANEL_HEIGHT, PANEL_COLOR);
-        graphics.drawString(this.minecraft.font, Component.literal("Cargando Assets"), x + 8, y + 7, TEXT_COLOR, false);
+        graphics.drawString(Minecraft.getInstance().font, Component.literal("Cargando Assets"), x + 8, y + 7, TEXT_COLOR, false);
 
         int loaded = progress >= 100 ? 1 : 0;
-        graphics.drawString(this.minecraft.font, Component.literal(loaded + "/1 Assets cargados"), x + 8, y + 21, TEXT_COLOR, false);
+        graphics.drawString(Minecraft.getInstance().font, Component.literal(loaded + "/1 Assets cargados"), x + 8, y + 21, TEXT_COLOR, false);
 
         int barX = x + 8;
         int barY = y + 38;
