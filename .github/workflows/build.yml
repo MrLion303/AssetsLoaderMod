@@ -45,7 +45,7 @@ jobs:
           fi
           gradle "${args[@]}"
 
-      - name: Preparar ZIP
+      - name: Preparar JAR
         shell: bash
         run: |
           jar=$(find build/libs -maxdepth 1 -type f -name '*.jar' ! -name '*-sources.jar' | head -n 1)
@@ -54,11 +54,10 @@ jobs:
             exit 1
           fi
           cp "$jar" "AssetsLoaderMod-${{ matrix.loader }}-1.20.1.jar"
-          zip "AssetsLoaderMod-${{ matrix.loader }}-1.20.1.zip" "AssetsLoaderMod-${{ matrix.loader }}-1.20.1.jar"
 
-      - name: Publicar ZIP
+      - name: Publicar JAR
         uses: actions/upload-artifact@v4
         with:
           name: AssetsLoaderMod-${{ matrix.loader }}-1.20.1
-          path: AssetsLoaderMod-${{ matrix.loader }}-1.20.1.zip
+          path: AssetsLoaderMod-${{ matrix.loader }}-1.20.1.jar
           if-no-files-found: error
