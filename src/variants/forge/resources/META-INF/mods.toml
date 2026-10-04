@@ -21,5 +21,6 @@ side="CLIENT"
 modId="minecraft"
 type="required"
 versionRange="[${minecraft_version}]"
+mandatory=true
 ordering="NONE"
 side="CLIENT"
