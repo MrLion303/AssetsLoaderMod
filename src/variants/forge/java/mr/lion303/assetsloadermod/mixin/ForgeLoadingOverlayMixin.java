@@ -3,10 +3,10 @@ package mr.lion303.assetsloadermod.mixin;
 import net.minecraft.Util;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.screens.LoadingOverlay;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.packs.resources.ReloadInstance;
-import net.minecraft.resources.ResourceLocation;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -20,77 +20,81 @@ import java.util.function.Consumer;
 
 @Mixin(LoadingOverlay.class)
 public abstract class ForgeLoadingOverlayMixin {
-    private static final int PANEL_WIDTH = 176;
-    private static final int PANEL_HEIGHT = 58;
-    private static final int PANEL_MARGIN = 8;
-    private static final int TEXT_COLOR = 0xFF202020;
-    private static final int PANEL_COLOR = 0x99FFFFFF;
-    private static final int BAR_BACKGROUND = 0x55202020;
-    private static final int BAR_FILL = 0xFF202020;
+    private static final int ANCHO_PANEL = 176;
+    private static final int ALTO_PANEL = 58;
+    private static final int MARGEN_PANEL = 8;
+    private static final int COLOR_TEXTO = 0xFF202020;
+    private static final int COLOR_PANEL = 0x99FFFFFF;
+    private static final int COLOR_FONDO_BARRA = 0x55202020;
+    private static final int COLOR_RELLENO_BARRA = 0xFF202020;
 
     @Shadow private long fadeOutStart;
     @Shadow @Final private Minecraft minecraft;
     @Shadow @Final private ReloadInstance reload;
     @Shadow @Final private Consumer<Optional<Throwable>> onFinish;
 
-    @Unique private int assetsLoaderMod$totalAssets = -1;
+    @Unique private int assetsTotales = -1;
 
-    @Inject(method = "render", at = @At("HEAD"), cancellable = true, )
-    private void assetsLoaderMod$reemplazarPantallaDeCarga(GuiGraphics graphics, int mouseX, int mouseY, float partialTick, CallbackInfo ci) {
+    @Inject(method = "render", at = @At("HEAD"), cancellable = true)
+    private void reemplazarPantallaDeCarga(GuiGraphics graficos, int mouseX, int mouseY, float partialTick, CallbackInfo ci) {
         ci.cancel();
 
-        long now = Util.getMillis();
-        if (this.fadeOutStart > -1L && (float) (now - this.fadeOutStart) / 1000.0F >= 1.0F) {
+        long ahora = Util.getMillis();
+
+        if (this.fadeOutStart > -1L && (float) (ahora - this.fadeOutStart) / 1000.0F >= 1.0F) {
             this.minecraft.setOverlay(null);
             return;
         }
 
         if (this.fadeOutStart == -1L && this.reload.isDone()) {
-            this.fadeOutStart = now;
+            this.fadeOutStart = ahora;
 
             try {
                 this.reload.checkExceptions();
                 this.onFinish.accept(Optional.empty());
-            } catch (Throwable throwable) {
-                this.onFinish.accept(Optional.of(throwable));
+            } catch (Throwable error) {
+                this.onFinish.accept(Optional.of(error));
             }
 
-            Screen screen = this.minecraft.screen;
-            if (screen != null) {
-                screen.init(this.minecraft, this.minecraft.getWindow().getGuiScaledWidth(), this.minecraft.getWindow().getGuiScaledHeight());
+            Screen pantalla = this.minecraft.screen;
+            if (pantalla != null) {
+                pantalla.init(this.minecraft, this.minecraft.getWindow().getGuiScaledWidth(), this.minecraft.getWindow().getGuiScaledHeight());
             }
         }
 
+        float progreso = Math.max(0.0F, Math.min(this.reload.getActualProgress(), 1.0F));
 
-        float reloadProgress = Math.max(0.0F, Math.min(this.reload.getActualProgress(), 1.0F));
-        if (this.assetsLoaderMod$totalAssets < 0) {
+        if (this.assetsTotales < 0) {
             try {
-                this.assetsLoaderMod$totalAssets = this.minecraft.getResourceManager()
-                        .listResources("", location -> true).size();
-            } catch (RuntimeException ignored) {
-                this.assetsLoaderMod$totalAssets = 0;
+                this.assetsTotales = this.minecraft.getResourceManager()
+                        .listResources("", ubicacion -> true)
+                        .size();
+            } catch (RuntimeException error) {
+                this.assetsTotales = 0;
             }
         }
 
-        int total = Math.max(0, this.assetsLoaderMod$totalAssets);
-        int loaded = this.reload.isDone() ? total : Math.min(total, Math.round(total * reloadProgress));
-        int progressPercent = Math.round(reloadProgress * 100.0F);
-        int x = PANEL_MARGIN;
-        int y = graphics.guiHeight() - PANEL_HEIGHT - PANEL_MARGIN;
+        int total = Math.max(0, this.assetsTotales);
+        int cargados = this.reload.isDone() ? total : Math.min(total, Math.round(total * progreso));
+        int porcentaje = Math.round(progreso * 100.0F);
 
-        graphics.fill(x, y, x + PANEL_WIDTH, y + PANEL_HEIGHT, PANEL_COLOR);
-        graphics.drawString(this.minecraft.font, Component.literal("Cargando Assets"), x + 8, y + 7, TEXT_COLOR, false);
-        graphics.drawString(this.minecraft.font, Component.literal(loaded + "/" + total + " Assets cargados"), x + 8, y + 21, TEXT_COLOR, false);
+        int x = MARGEN_PANEL;
+        int y = graficos.guiHeight() - ALTO_PANEL - MARGEN_PANEL;
 
-        int barX = x + 8;
-        int barY = y + 38;
-        int barWidth = PANEL_WIDTH - 16;
-        int barHeight = 8;
-        graphics.fill(barX, barY, barX + barWidth, barY + barHeight, BAR_BACKGROUND);
+        graficos.fill(x, y, x + ANCHO_PANEL, y + ALTO_PANEL, COLOR_PANEL);
+        graficos.drawString(this.minecraft.font, Component.literal("Cargando Assets"), x + 8, y + 7, COLOR_TEXTO, false);
+        graficos.drawString(this.minecraft.font, Component.literal(cargados + "/" + total + " Assets cargados"), x + 8, y + 21, COLOR_TEXTO, false);
 
-        int filledWidth = Math.round(barWidth * (progressPercent / 100.0F));
-        if (filledWidth > 0) {
-            graphics.fill(barX, barY, barX + filledWidth, barY + barHeight, BAR_FILL);
+        int barraX = x + 8;
+        int barraY = y + 38;
+        int barraAncho = ANCHO_PANEL - 16;
+        int barraAlto = 8;
+
+        graficos.fill(barraX, barraY, barraX + barraAncho, barraY + barraAlto, COLOR_FONDO_BARRA);
+
+        int anchoRelleno = Math.round(barraAncho * (porcentaje / 100.0F));
+        if (anchoRelleno > 0) {
+            graficos.fill(barraX, barraY, barraX + anchoRelleno, barraY + barraAlto, COLOR_RELLENO_BARRA);
         }
     }
 }
