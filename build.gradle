@@ -14,7 +14,11 @@ buildscript {
             classpath 'net.fabricmc:fabric-loom:1.17.21'
         }
         if (project.hasProperty('loader') && project.property('loader').toString().equalsIgnoreCase('neoforge')) {
-            classpath 'net.neoforged.moddev:net.neoforged.moddev.gradle.plugin:2.0.147'
+            if (project.hasProperty('minecraft_version') && project.property('minecraft_version').toString() == '1.20.6') {
+                classpath 'net.neoforged.gradle:net.neoforged.gradle.userdev:7.1.39'
+            } else {
+                classpath 'net.neoforged.moddev:net.neoforged.moddev.gradle.plugin:2.0.147'
+            }
         }
     }
 }
@@ -92,21 +96,37 @@ if (isFabric) {
         }
     }
 } else if (isNeo) {
-    apply plugin: 'net.neoforged.moddev'
+    if (minecraftVersion == '1.20.6') {
+        apply plugin: 'net.neoforged.gradle.userdev'
 
-    configurations.configureEach {
-        resolutionStrategy.force 'org.slf4j:slf4j-api:2.0.7'
-    }
-
-    neoForge {
-        version = project.findProperty('neoforge_version').toString()
-        runs {
-            client { client() }
-            server { server() }
+        dependencies {
+            implementation "net.neoforged:neoforge:${project.findProperty('neoforge_version')}"
         }
-        mods {
-            assetsloadermod {
-                sourceSet sourceSets.main
+
+        runs {
+            configureEach {
+                modSource sourceSets.main
+            }
+            client {}
+            server {}
+        }
+    } else {
+        apply plugin: 'net.neoforged.moddev'
+
+        configurations.configureEach {
+            resolutionStrategy.force 'org.slf4j:slf4j-api:2.0.7'
+        }
+
+        neoForge {
+            version = project.findProperty('neoforge_version').toString()
+            runs {
+                client { client() }
+                server { server() }
+            }
+            mods {
+                assetsloadermod {
+                    sourceSet sourceSets.main
+                }
             }
         }
     }
