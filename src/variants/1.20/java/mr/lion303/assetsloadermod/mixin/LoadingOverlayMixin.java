@@ -26,7 +26,7 @@ public abstract class LoadingOverlayMixin {
     @Shadow @Final
     private ReloadInstance reload;
 
-    @Inject(method = "render", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "render", at = @At("TAIL"))
     private void assetsLoaderMod$render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick, CallbackInfo ci) {
         Minecraft minecraft = Minecraft.getInstance();
 
@@ -35,7 +35,6 @@ public abstract class LoadingOverlayMixin {
             return;
         }
 
-        ci.cancel();
 
         int progress = Math.max(0, Math.min(Math.round(this.reload.getActualProgress() * 100.0F), 100));
         int x = PANEL_MARGIN;
