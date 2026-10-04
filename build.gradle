@@ -34,7 +34,7 @@ def javaVersion = is26 ? 25 : ((minecraftVersion == '1.20.5' || minecraftVersion
 
 def supported = [
     fabric: ['1.20','1.20.1','1.20.2','1.20.3','1.20.4','1.20.5','1.20.6','26.3'],
-    forge: ['1.20','1.20.1','1.20.2','1.20.3','1.20.4','1.20.5','1.20.6'],
+    forge: ['1.20','1.20.1','1.20.2','1.20.3','1.20.4','1.20.6'],
     neoforge: ['1.20.4','1.20.6','26.3']
 ]
 if (!supported.containsKey(loader) || !supported[loader].contains(minecraftVersion)) {
