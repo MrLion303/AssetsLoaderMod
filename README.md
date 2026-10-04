@@ -8,7 +8,7 @@ AssetsLoaderMod reemplaza la pantalla de carga del mundo de Minecraft por un ind
 - Recuadro blanco con baja opacidad en la esquina inferior izquierda.
 - Fuente y estética vanilla de Minecraft.
 - `Cargando Assets`
-- `0/1 Assets cargados`
+- Contador dinámico de recursos disponibles y progreso de recarga.
 - Barra de progreso debajo del texto.
 - Sin bordes redondeados, iconos, sombras decorativas ni colores llamativos.
 - El indicador desaparece cuando termina la carga.
