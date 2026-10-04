@@ -25,7 +25,7 @@ Cada combinación válida se compila como un JAR independiente. No se crea un JA
 ### Builds
 
 - Fabric: 1.20–1.20.6 y 26.3.
-- Forge: 1.20–1.20.6.
+- Forge: 1.20–1.20.4 y 1.20.6 (Forge no publicó una rama 1.20.5).
 - NeoForge: 1.20.4, 1.20.6 y 26.3.
 
 Las diferencias internas entre 1.20.x y 26.3 se mantienen en adaptadores separados; la apariencia y el comportamiento del indicador son los mismos.
@@ -37,7 +37,7 @@ La compilación se selecciona con propiedades de Gradle:
 ```text
 gradle build -Ploader=fabric -Pminecraft_version=1.20.1
 gradle build -Ploader=forge -Pminecraft_version=1.20.1 -Pforge_version=47.4.26
-gradle build -Ploader=neoforge -Pminecraft_version=1.20.6 -Pneoforge_version=20.6.62
+gradle build -Ploader=neoforge -Pminecraft_version=1.20.6 -Pneoforge_version=20.6.115
 ```
 
 El nombre del artefacto identifica Minecraft y loader, por ejemplo:
