@@ -6,6 +6,9 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.LoadingOverlay;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.packs.PackResources;
+import net.minecraft.server.packs.PackType;
+import net.minecraft.server.packs.repository.Pack;
 import net.minecraft.server.packs.resources.ReloadInstance;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -14,8 +17,13 @@ import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
@@ -36,6 +44,11 @@ public abstract class ForgeLoadingOverlayMixin {
 
     @Unique private volatile int assetsTotales = -1;
     @Unique private volatile boolean contandoAssets = false;
+
+    @Inject(method = "isPauseScreen", at = @At("HEAD"), cancellable = true)
+    private void permitirContinuarJugando(CallbackInfoReturnable<Boolean> ci) {
+        ci.setReturnValue(false);
+    }
 
     @Inject(method = "render", at = @At("HEAD"), cancellable = true)
     private void reemplazarPantallaDeCarga(GuiGraphics graficos, int mouseX, int mouseY, float partialTick, CallbackInfo ci) {
@@ -68,11 +81,27 @@ public abstract class ForgeLoadingOverlayMixin {
 
         if (this.assetsTotales < 0 && !this.contandoAssets) {
             this.contandoAssets = true;
+
+            List<Pack> paquetesSeleccionados = new ArrayList<>(
+                    this.minecraft.getResourcePackRepository().getSelectedPacks()
+            );
+
             CompletableFuture.supplyAsync(() -> {
+                Set<String> recursos = new HashSet<>();
+
                 try {
-                    return this.minecraft.getResourceManager()
-                            .listResources("", ubicacion -> true)
-                            .size();
+                    for (Pack paquete : paquetesSeleccionados) {
+                        try (PackResources recursosPaquete = paquete.open()) {
+                            recursosPaquete.listResources(
+                                    PackType.CLIENT_RESOURCES,
+                                    "",
+                                    "",
+                                    (ubicacion, proveedor) -> recursos.add(ubicacion.toString())
+                            );
+                        }
+                    }
+
+                    return recursos.size();
                 } catch (RuntimeException error) {
                     return -1;
                 }
