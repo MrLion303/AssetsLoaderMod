@@ -45,24 +45,18 @@ jobs:
           fi
           gradle "${args[@]}"
 
-      - name: Preparar paquete
+      - name: Preparar ZIP
         shell: bash
         run: |
-          mkdir -p "paquete/AssetsLoaderMod-${{ matrix.loader }}-1.20.1"
           jar=$(find build/libs -maxdepth 1 -type f -name '*.jar' ! -name '*-sources.jar' | head -n 1)
           if [ -z "$jar" ]; then
             echo "No se encontró el JAR compilado."
             exit 1
           fi
-          cp "$jar" "paquete/AssetsLoaderMod-${{ matrix.loader }}-1.20.1/"
+          cp "$jar" "AssetsLoaderMod-${{ matrix.loader }}-1.20.1.jar"
+          zip "AssetsLoaderMod-${{ matrix.loader }}-1.20.1.zip" "AssetsLoaderMod-${{ matrix.loader }}-1.20.1.jar"
 
-      - name: Crear ZIP
-        shell: bash
-        run: |
-          cd paquete
-          zip -r "../AssetsLoaderMod-${{ matrix.loader }}-1.20.1.zip" "AssetsLoaderMod-${{ matrix.loader }}-1.20.1"
-
-      - name: Publicar paquete
+      - name: Publicar ZIP
         uses: actions/upload-artifact@v4
         with:
           name: AssetsLoaderMod-${{ matrix.loader }}-1.20.1
