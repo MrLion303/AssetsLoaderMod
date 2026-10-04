@@ -59,9 +59,51 @@ jobs:
           if [ -n "${{ matrix.fabric_loader }}" ]; then args+=("-Pfabric_loader_version=${{ matrix.fabric_loader }}"); fi
           gradle "${args[@]}"
 
-      - name: Subir JAR
+      - name: Subir JAR individual
         uses: actions/upload-artifact@v4
         with:
           name: AssetsLoaderMod-${{ matrix.loader }}-${{ matrix.mc }}
           path: build/libs/*.jar
+          if-no-files-found: error
+
+      - name: Preparar JAR para paquete
+        shell: bash
+        run: |
+          mkdir -p "paquetes/${{ matrix.loader }}/${{ matrix.mc }}"
+          cp build/libs/*.jar "paquetes/${{ matrix.loader }}/${{ matrix.mc }}/AssetsLoaderMod-${{ matrix.mc }}-${{ matrix.loader }}.jar"
+
+      - name: Subir JAR preparado
+        uses: actions/upload-artifact@v4
+        with:
+          name: paquete-${{ matrix.loader }}-${{ matrix.mc }}
+          path: paquetes/${{ matrix.loader }}/${{ matrix.mc }}/
+
+  empaquetar:
+    needs: build
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        loader: [forge, fabric, neoforge]
+
+    steps:
+      - name: Descargar JAR de versiones
+        uses: actions/download-artifact@v4
+        with:
+          pattern: paquete-${{ matrix.loader }}-*
+          path: paquetes
+          merge-multiple: true
+
+      - name: Crear ZIP
+        shell: bash
+        run: |
+          mkdir -p "distribucion/AssetsLoaderMod-${{ matrix.loader }}"
+          find paquetes/${{ matrix.loader }} -type f -name '*.jar' -exec cp {} "distribucion/AssetsLoaderMod-${{ matrix.loader }}/" \;
+          cd distribucion
+          zip -r "../AssetsLoaderMod-${{ matrix.loader }}.zip" "AssetsLoaderMod-${{ matrix.loader }}"
+
+      - name: Subir ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: AssetsLoaderMod-${{ matrix.loader }}
+          path: AssetsLoaderMod-${{ matrix.loader }}.zip
           if-no-files-found: error
