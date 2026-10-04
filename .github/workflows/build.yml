@@ -97,7 +97,9 @@ jobs:
         shell: bash
         run: |
           mkdir -p "distribucion/AssetsLoaderMod-${{ matrix.loader }}"
-          find "paquetes" -type f -name '*.jar' -exec cp {} "distribucion/AssetsLoaderMod-${{ matrix.loader }}/" \\;
+          while IFS= read -r -d '' archivo; do
+            cp "$archivo" "distribucion/AssetsLoaderMod-${{ matrix.loader }}/"
+          done < <(find "paquetes" -type f -name '*.jar' -print0)
           cd distribucion
           zip -r "../AssetsLoaderMod-${{ matrix.loader }}.zip" "AssetsLoaderMod-${{ matrix.loader }}"
 
