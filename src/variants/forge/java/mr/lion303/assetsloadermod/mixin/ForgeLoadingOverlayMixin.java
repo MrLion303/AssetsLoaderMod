@@ -1,16 +1,16 @@
 package mr.lion303.assetsloadermod.mixin;
 
-import com.mojang.blaze3d.platform.Window;
 import mr.lion303.assetsloadermod.ResourceReloadState;
 import net.minecraft.Util;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.packs.resources.ReloadInstance;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.client.loading.ForgeLoadingOverlay;
 import net.minecraftforge.fml.earlydisplay.DisplayWindow;
 import net.minecraftforge.fml.loading.progress.ProgressMeter;
-import net.minecraft.server.packs.resources.ReloadInstance;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -38,6 +38,8 @@ public abstract class ForgeLoadingOverlayMixin {
     @Shadow @Final private ProgressMeter progress;
     @Shadow @Final private Consumer<Optional<Throwable>> onFinish;
 
+    @Unique private int assetsLoaderMod$totalAssets = -1;
+
     @Inject(method = "render", at = @At("HEAD"), cancellable = true, remap = false)
     private void assetsLoaderMod$replaceForgeLoadingScreen(GuiGraphics graphics, int mouseX, int mouseY, float partialTick, CallbackInfo ci) {
         ci.cancel();
@@ -47,7 +49,6 @@ public abstract class ForgeLoadingOverlayMixin {
                 ? (float) (now - this.fadeOutStart) / 1000.0F
                 : -1.0F;
 
-        // Mantener intacta la finalización de la recarga de Forge.
         if (fadeOutTimer >= 2.0F) {
             this.minecraft.setOverlay(null);
             this.displayWindow.close();
@@ -75,16 +76,25 @@ public abstract class ForgeLoadingOverlayMixin {
             return;
         }
 
-        int progressPercent = Math.max(0, Math.min(Math.round(this.reload.getActualProgress() * 100.0F), 100));
+        float reloadProgress = Math.max(0.0F, Math.min(this.reload.getActualProgress(), 1.0F));
+        if (this.assetsLoaderMod$totalAssets < 0) {
+            try {
+                this.assetsLoaderMod$totalAssets = this.minecraft.getResourceManager()
+                        .listResources("", location -> true).size();
+            } catch (RuntimeException ignored) {
+                this.assetsLoaderMod$totalAssets = 0;
+            }
+        }
+
+        int total = Math.max(0, this.assetsLoaderMod$totalAssets);
+        int loaded = this.reload.isDone() ? total : Math.min(total, Math.round(total * reloadProgress));
+        int progressPercent = Math.round(reloadProgress * 100.0F);
         int x = PANEL_MARGIN;
         int y = graphics.guiHeight() - PANEL_HEIGHT - PANEL_MARGIN;
 
-        // No se dibuja el fondo opaco ni el logo de Mojang: el mundo queda visible detrás.
         graphics.fill(x, y, x + PANEL_WIDTH, y + PANEL_HEIGHT, PANEL_COLOR);
         graphics.drawString(this.minecraft.font, Component.literal("Cargando Assets"), x + 8, y + 7, TEXT_COLOR, false);
-
-        int loaded = progressPercent >= 100 ? 1 : 0;
-        graphics.drawString(this.minecraft.font, Component.literal(loaded + "/1 Assets cargados"), x + 8, y + 21, TEXT_COLOR, false);
+        graphics.drawString(this.minecraft.font, Component.literal(loaded + "/" + total + " Assets cargados"), x + 8, y + 21, TEXT_COLOR, false);
 
         int barX = x + 8;
         int barY = y + 38;
