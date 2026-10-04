@@ -41,7 +41,7 @@ jobs:
         run: |
           args=("build" "--no-daemon" "-Ploader=${{ matrix.loader }}" "-Pminecraft_version=1.20.1")
           if [ "${{ matrix.loader }}" = "forge" ]; then
-            args+=("-Pforge_version=47.4.26")
+            args+=("-Pforge_version=47.4.20")
           fi
           gradle "${args[@]}"
 
