@@ -1,27 +1,68 @@
 name: Compilación
+
 on:
   push:
     branches: [ main ]
   pull_request:
+  workflow_dispatch:
+
 jobs:
   build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { loader: fabric, mc: '1.20', java: '17', gradle: '8.8' }
+          - { loader: fabric, mc: '1.20.1', java: '17', gradle: '8.8' }
+          - { loader: fabric, mc: '1.20.2', java: '17', gradle: '8.8' }
+          - { loader: fabric, mc: '1.20.3', java: '17', gradle: '8.8' }
+          - { loader: fabric, mc: '1.20.4', java: '17', gradle: '8.8' }
+          - { loader: fabric, mc: '1.20.5', java: '21', gradle: '8.8' }
+          - { loader: fabric, mc: '1.20.6', java: '21', gradle: '8.8' }
+          - { loader: fabric, mc: '26.3', java: '25', gradle: '9.6.0' }
+
+          - { loader: forge, mc: '1.20', java: '17', forge: '46.0.14', gradle: '8.8' }
+          - { loader: forge, mc: '1.20.1', java: '17', forge: '47.4.26', gradle: '8.8' }
+          - { loader: forge, mc: '1.20.2', java: '17', forge: '48.1.0', gradle: '8.8' }
+          - { loader: forge, mc: '1.20.3', java: '17', forge: '49.0.2', gradle: '8.8' }
+          - { loader: forge, mc: '1.20.4', java: '17', forge: '49.2.9', gradle: '8.8' }
+          - { loader: forge, mc: '1.20.5', java: '21', forge: '50.0.32', gradle: '8.8' }
+          - { loader: forge, mc: '1.20.6', java: '21', forge: '50.2.10', gradle: '8.8' }
+
+          - { loader: neoforge, mc: '1.20.4', java: '17', neoforge: '20.4.238', gradle: '8.8' }
+          - { loader: neoforge, mc: '1.20.6', java: '21', neoforge: '20.6.62', gradle: '8.8' }
+          - { loader: neoforge, mc: '26.3', java: '25', neoforge: '26.3.0.42-beta', gradle: '9.6.0' }
+
     runs-on: ubuntu-latest
+    name: ${{ matrix.loader }} ${{ matrix.mc }}
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Set up Java
+
+      - name: Java
         uses: actions/setup-java@v5
         with:
           distribution: temurin
-          java-version: '17'
-      - name: Set up Gradle
+          java-version: ${{ matrix.java }}
+
+      - name: Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
-          gradle-version: '8.1.1'
-      - name: Build
-        run: gradle build --no-daemon
-      - name: Upload artifact
+          gradle-version: ${{ matrix.gradle }}
+
+      - name: Compilar
+        shell: bash
+        run: |
+          args=("build" "--no-daemon" "-Ploader=${{ matrix.loader }}" "-Pminecraft_version=${{ matrix.mc }}")
+          if [ -n "${{ matrix.forge }}" ]; then args+=("-Pforge_version=${{ matrix.forge }}"); fi
+          if [ -n "${{ matrix.neoforge }}" ]; then args+=("-Pneoforge_version=${{ matrix.neoforge }}"); fi
+          if [ -n "${{ matrix.fabric_loader }}" ]; then args+=("-Pfabric_loader_version=${{ matrix.fabric_loader }}"); fi
+          gradle "${args[@]}"
+
+      - name: Subir JAR
         uses: actions/upload-artifact@v4
         with:
-          name: AssetsLoaderMod
+          name: AssetsLoaderMod-${{ matrix.loader }}-${{ matrix.mc }}
           path: build/libs/*.jar
+          if-no-files-found: error
