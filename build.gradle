@@ -94,6 +94,10 @@ if (isFabric) {
 } else if (isNeo) {
     apply plugin: 'net.neoforged.moddev'
 
+    configurations.configureEach {
+        resolutionStrategy.force 'org.slf4j:slf4j-api:2.0.7'
+    }
+
     neoForge {
         version = project.findProperty('neoforge_version').toString()
         runs {
@@ -116,11 +120,6 @@ if (isFabric) {
         runs {
             client {}
             server {}
-        }
-        mods {
-            assetsloadermod {
-                source sourceSets.main
-            }
         }
     }
 
