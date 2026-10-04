@@ -7,9 +7,6 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.packs.resources.ReloadInstance;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraftforge.client.loading.ForgeLoadingOverlay;
-import net.minecraftforge.fml.earlydisplay.DisplayWindow;
-import net.minecraftforge.fml.loading.progress.ProgressMeter;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -21,7 +18,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import java.util.Optional;
 import java.util.function.Consumer;
 
-@Mixin(value = ForgeLoadingOverlay.class, remap = false)
+@Mixin(LoadingOverlay.class)
 public abstract class ForgeLoadingOverlayMixin {
     private static final int PANEL_WIDTH = 176;
     private static final int PANEL_HEIGHT = 58;
@@ -33,30 +30,22 @@ public abstract class ForgeLoadingOverlayMixin {
 
     @Shadow private long fadeOutStart;
     @Shadow @Final private Minecraft minecraft;
-    @Shadow @Final private DisplayWindow displayWindow;
     @Shadow @Final private ReloadInstance reload;
-    @Shadow @Final private ProgressMeter progress;
     @Shadow @Final private Consumer<Optional<Throwable>> onFinish;
 
     @Unique private int assetsLoaderMod$totalAssets = -1;
 
-    @Inject(method = "render", at = @At("HEAD"), cancellable = true, remap = false)
-    private void assetsLoaderMod$replaceForgeLoadingScreen(GuiGraphics graphics, int mouseX, int mouseY, float partialTick, CallbackInfo ci) {
+    @Inject(method = "render", at = @At("HEAD"), cancellable = true, )
+    private void assetsLoaderMod$reemplazarPantallaDeCarga(GuiGraphics graphics, int mouseX, int mouseY, float partialTick, CallbackInfo ci) {
         ci.cancel();
 
         long now = Util.getMillis();
-        float fadeOutTimer = this.fadeOutStart > -1L
-                ? (float) (now - this.fadeOutStart) / 1000.0F
-                : -1.0F;
-
-        if (fadeOutTimer >= 2.0F) {
+        if (this.fadeOutStart > -1L && (float) (now - this.fadeOutStart) / 1000.0F >= 1.0F) {
             this.minecraft.setOverlay(null);
-            this.displayWindow.close();
             return;
         }
 
         if (this.fadeOutStart == -1L && this.reload.isDone()) {
-            this.progress.complete();
             this.fadeOutStart = now;
 
             try {
