@@ -92,12 +92,14 @@ public abstract class ForgeLoadingOverlayMixin {
                 try {
                     for (Pack paquete : paquetesSeleccionados) {
                         try (PackResources recursosPaquete = paquete.open()) {
-                            recursosPaquete.listResources(
-                                    PackType.CLIENT_RESOURCES,
-                                    "",
-                                    "",
-                                    (ubicacion, proveedor) -> recursos.add(ubicacion.toString())
-                            );
+                            for (String espacioNombres : recursosPaquete.getNamespaces(PackType.CLIENT_RESOURCES)) {
+                                recursosPaquete.listResources(
+                                        PackType.CLIENT_RESOURCES,
+                                        espacioNombres,
+                                        "",
+                                        (ubicacion, proveedor) -> recursos.add(ubicacion.toString())
+                                );
+                            }
                         }
                     }
 
