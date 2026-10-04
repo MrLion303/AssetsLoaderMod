@@ -106,7 +106,7 @@ if (isFabric) {
     }
 
     jar {
-        manifest.attributes(['MixinConfigs': 'assetsloadermod.mixins.json'])
+        manifest.attributes(['MixinConfigs': 'assetsloadermod.mixins.json,assetsloadermod.forge.mixins.json'])
     }
 
     tasks.named('jar', Jar).configure {
