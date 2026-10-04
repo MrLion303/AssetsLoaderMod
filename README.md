@@ -18,7 +18,7 @@ AssetsLoaderMod reemplaza la pantalla de carga del mundo de Minecraft por un ind
 La compilación automática se limita exclusivamente a estas dos combinaciones:
 
 - Fabric para Minecraft 1.20.1.
-- Forge para Minecraft 1.20.1.
+- Forge para Minecraft 1.20.1 con Forge 47.4.20.
 
 Cada loader genera su propio paquete ZIP, que contiene el JAR correspondiente. No se compilan otras versiones ni NeoForge.
 
@@ -33,7 +33,7 @@ gradle build -Ploader=fabric -Pminecraft_version=1.20.1
 Forge:
 
 ```text
-gradle build -Ploader=forge -Pminecraft_version=1.20.1 -Pforge_version=47.4.26
+gradle build -Ploader=forge -Pminecraft_version=1.20.1 -Pforge_version=47.4.20
 ```
 
 Los JAR generados identifican el loader y la versión de Minecraft en su nombre.
