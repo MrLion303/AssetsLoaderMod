@@ -1,19 +1,22 @@
 buildscript {
     repositories {
+        gradlePluginPortal()
         maven { url = 'https://maven.minecraftforge.net' }
         maven { url = 'https://repo.spongepowered.org/repository/maven-public/' }
+        maven { url = 'https://maven.fabricmc.net/' }
+        maven { url = 'https://maven.neoforged.net/releases' }
         mavenCentral()
     }
     dependencies {
         classpath 'net.minecraftforge.gradle:ForgeGradle:6.+'
         classpath 'org.spongepowered:mixingradle:0.7-SNAPSHOT'
+        classpath 'net.fabricmc:fabric-loom:1.17.21'
+        classpath 'net.neoforged.moddev:net.neoforged.moddev.gradle.plugin:2.0.147'
     }
 }
 
 plugins {
-    id 'fabric-loom' version '1.17.21' apply false
-    id 'net.neoforged.moddev' version '2.0.147' apply false
-    id 'net.neoforged.moddev.legacyforge' version '2.0.147' apply false
+    id 'java'
     id 'maven-publish'
 }
 
@@ -36,6 +39,7 @@ if (!supported.containsKey(loader) || !supported[loader].contains(minecraftVersi
 
 group = mod_group_id
 version = "${mod_version}+mc${minecraftVersion}-${loader}"
+
 tasks.withType(Jar).configureEach {
     archiveBaseName.set(mod_id)
 }
@@ -66,12 +70,14 @@ sourceSets {
 
 if (isFabric) {
     apply plugin: 'fabric-loom'
+
     loom {
         runs {
             client { client() }
             server { server() }
         }
     }
+
     dependencies {
         minecraft "com.mojang:minecraft:${minecraftVersion}"
         mappings loom.officialMojangMappings()
@@ -79,6 +85,7 @@ if (isFabric) {
     }
 } else if (isNeo) {
     apply plugin: 'net.neoforged.moddev'
+
     neoForge {
         version = project.findProperty('neoforge_version').toString()
         runs {
@@ -86,59 +93,46 @@ if (isFabric) {
             server { server() }
         }
         mods {
-            assetsloadermod { sourceSet sourceSets.main }
+            assetsloadermod {
+                sourceSet sourceSets.main
+            }
         }
     }
 } else if (isForge) {
-    if (minecraftVersion == '1.20.1') {
-        apply plugin: 'net.minecraftforge.gradle'
-        minecraft {
-            mappings channel: 'official', version: minecraftVersion
-            copyIdeResources = true
-            runs {
-                client { client() }
-                server { server() }
-            }
-            mods { assetsloadermod { sourceSet sourceSets.main } }
+    apply plugin: 'net.minecraftforge.gradle'
+    apply plugin: 'org.spongepowered.mixin'
+
+    minecraft {
+        mappings channel: 'official', version: minecraftVersion
+        copyIdeResources = true
+        runs {
+            client {}
+            server {}
         }
-        apply plugin: 'org.spongepowered.mixin'
-        dependencies { annotationProcessor 'org.spongepowered:mixin:0.8.5:processor' }
-        mixin {
-            add sourceSets.main, 'assetsloadermod.refmap.json'
-            config 'assetsloadermod.mixins.json'
-        }
-        jar {
-            manifest.attributes(['MixinConfigs': 'assetsloadermod.mixins.json'])
-            archiveClassifier.set('forge')
-        }
-    } else {
-        apply plugin: 'net.minecraftforge.gradle'
-        minecraft {
-            mappings channel: 'official', version: minecraftVersion
-            copyIdeResources = true
-            runs {
-                configureEach {
-                    workingDirectory project.file('run')
-                    mods { assetsloadermod { source sourceSets.main } }
-                }
-                client {}
-                server {}
+        mods {
+            assetsloadermod {
+                source sourceSets.main
             }
         }
-        dependencies {
-            minecraft "net.minecraftforge:forge:${minecraftVersion}-${project.findProperty('forge_version')}"
-            annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
-        }
-        apply plugin: 'org.spongepowered.mixin'
-        mixin {
-            add sourceSets.main, 'assetsloadermod.refmap.json'
-            config 'assetsloadermod.mixins.json'
-        }
-        jar {
-            manifest.attributes(['MixinConfigs': 'assetsloadermod.mixins.json'])
-        }
-        if (minecraftVersion < '1.20.5') {
-            tasks.named('jar', Jar).configure { finalizedBy 'reobfJar' }
+    }
+
+    dependencies {
+        minecraft "net.minecraftforge:forge:${minecraftVersion}-${project.findProperty('forge_version')}"
+        annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
+    }
+
+    mixin {
+        add sourceSets.main, 'assetsloadermod.refmap.json'
+        config 'assetsloadermod.mixins.json'
+    }
+
+    jar {
+        manifest.attributes(['MixinConfigs': 'assetsloadermod.mixins.json'])
+    }
+
+    if (minecraftVersion < '1.20.5') {
+        tasks.named('jar', Jar).configure {
+            finalizedBy 'reobfJar'
         }
     }
 }
@@ -156,13 +150,24 @@ processResources {
         neoforge_version: project.findProperty('neoforge_version') ?: '',
         fabric_loader_version: is26 ? '0.19.5' : '0.17.2'
     ]
+
     inputs.properties(props)
-    filesMatching(['assetsloadermod.mixins.json','fabric.mod.json','META-INF/mods.toml','META-INF/neoforge.mods.toml']) {
+
+    filesMatching([
+        'assetsloadermod.mixins.json',
+        'fabric.mod.json',
+        'META-INF/mods.toml',
+        'META-INF/neoforge.mods.toml'
+    ]) {
         expand props
     }
+
     if (isNeo && minecraftVersion == '1.20.4') {
-        filesMatching('META-INF/neoforge.mods.toml') { it.path = 'META-INF/mods.toml' }
+        filesMatching('META-INF/neoforge.mods.toml') {
+            it.path = 'META-INF/mods.toml'
+        }
     }
+
     if (!isNeo) exclude 'META-INF/neoforge.mods.toml'
     if (!isFabric) exclude 'fabric.mod.json'
     if (!isForge) exclude 'META-INF/mods.toml'
