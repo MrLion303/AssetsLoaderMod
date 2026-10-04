@@ -15,6 +15,9 @@ displayURL="https://github.com/MrLion303/AssetsLoaderMod"
 [[mixins]]
 config="assetsloadermod.mixins.json"
 
+[[mixins]]
+config="assetsloadermod.forge.mixins.json"
+
 [[dependencies.assetsloadermod]]
 modId="forge"
 mandatory=true
