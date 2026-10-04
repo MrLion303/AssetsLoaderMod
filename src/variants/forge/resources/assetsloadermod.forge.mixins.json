@@ -4,5 +4,7 @@
   "package": "mr.lion303.assetsloadermod.mixin",
   "compatibilityLevel": "JAVA_17",
   "refmap": "assetsloadermod.refmap.json",
-  "client": ["ForgeLoadingOverlayMixin"]
+  "client": [
+    "ForgeLoadingOverlayMixin"
+  ]
 }
