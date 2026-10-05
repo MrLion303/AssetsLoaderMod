@@ -21,7 +21,7 @@ config="assetsloadermod.forge.mixins.json"
 [[dependencies.assetsloadermod]]
 modId="forge"
 mandatory=true
-versionRange="[47.2.0,48)"
+versionRange="[47.4.18,48)"
 ordering="NONE"
 side="CLIENT"
 
