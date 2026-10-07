@@ -8,7 +8,7 @@ on:
 
 jobs:
   compilar:
-    name: ${{ matrix.loader }} - Minecraft 1.20.1
+    name: ${{ matrix.loader }} - Minecraft 1.20.1 - Forge ${{ matrix.forge_version }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -16,8 +16,13 @@ jobs:
         include:
           - loader: fabric
             gradle: 9.6.0
+            forge_version: no-aplica
           - loader: forge
             gradle: 8.8
+            forge_version: 47.4.18
+          - loader: forge
+            gradle: 8.8
+            forge_version: 47.4.20
 
     steps:
       - name: Descargar código
@@ -41,7 +46,7 @@ jobs:
         run: |
           args=("build" "--no-daemon" "-Ploader=${{ matrix.loader }}" "-Pminecraft_version=1.20.1")
           if [ "${{ matrix.loader }}" = "forge" ]; then
-            args+=("-Pforge_version=47.4.20")
+            args+=("-Pforge_version=${{ matrix.forge_version }}")
           fi
           gradle "${args[@]}"
 
@@ -53,11 +58,11 @@ jobs:
             echo "No se encontró el JAR compilado."
             exit 1
           fi
-          cp "$jar" "AssetsLoaderMod-${{ matrix.loader }}-1.20.1.jar"
+          cp "$jar" "AssetsLoaderMod-${{ matrix.loader }}-1.20.1-${{ matrix.forge_version }}.jar"
 
       - name: Publicar JAR
         uses: actions/upload-artifact@v4
         with:
-          name: AssetsLoaderMod-${{ matrix.loader }}-1.20.1
-          path: AssetsLoaderMod-${{ matrix.loader }}-1.20.1.jar
+          name: AssetsLoaderMod-${{ matrix.loader }}-1.20.1-${{ matrix.forge_version }}
+          path: AssetsLoaderMod-${{ matrix.loader }}-1.20.1-${{ matrix.forge_version }}.jar
           if-no-files-found: error
